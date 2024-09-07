@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tello Controller</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        button { margin: 10px; padding: 20px; font-size: 24px; width: 80px; height: 80px; }
+        .arrow { font-size: 24px; }
+        .distance-display { font-size: 24px; margin: 20px 0; }
+        #connection-status { font-size: 18px; font-weight: bold; margin-top: 10px; }
+        #start-button { width: 200px; height: 60px; font-size: 24px; }
+    </style>
+</head>
+<body>
+    <h1>Tello Controller</h1>
+    <div class="distance-display">
+        前進: <span id="forward_distance">0</span> cm
+        左: <span id="left_distance">0</span> cm
+        右: <span id="right_distance">0</span> cm
+    </div>
+    <div>
+        <button onclick="updateDistance('forward')" class="arrow">↑</button>
+    </div>
+    <div>
+        <button onclick="updateDistance('left')" class="arrow">←</button>
+        <button onclick="updateDistance('right')" class="arrow">→</button>
+    </div>
+    <button onclick="start()" id="start-button">スタート</button>
+    <div id="connection-status"></div>
+
+    <script>
+        let forwardDistance = 0;
+        let leftDistance = 0;
+        let rightDistance = 0;
+
+        function updateDistance(direction) {
+            switch(direction) {
+                case 'forward':
+                    forwardDistance += 5;
+                    document.getElementById('forward_distance').textContent = forwardDistance;
+                    break;
+                case 'left':
+                    leftDistance += 5;
+                    document.getElementById('left_distance').textContent = leftDistance;
+                    break;
+                case 'right':
+                    rightDistance += 5;
+                    document.getElementById('right_distance').textContent = rightDistance;
+                    break;
+            }
+        }
+
+        function start() {
+            fetch('/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    forward: forwardDistance,
+                    left: leftDistance,
+                    right: rightDistance
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                updateConnectionStatus(data.status);
+            })
+            .catch(error => {
+                alert('通信エラーが発生しました。');
+                updateConnectionStatus('Error');
+            });
+        }
+
+        function updateConnectionStatus(status) {
+            const statusElement = document.getElementById('connection-status');
+            if (status === 'Success') {
+                statusElement.textContent = 'Ready';
+                statusElement.style.color = 'green';
+            } else {
+                statusElement.textContent = 'Error';
+                statusElement.style.color = 'red';
+            }
+        }
+
+        // ページ読み込み時に接続状態を確認
+        fetch('/check_connection')
+            .then(response => response.json())
+            .then(data => updateConnectionStatus(data.status));
+    </script>
+</body>
+</html>
